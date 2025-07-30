@@ -3,7 +3,9 @@ BEGIN
     BEGIN TRY
         SET NOCOUNT OFF;
 
-        DECLARE @start_time DATETIME, @end_time DATETIME;
+        DECLARE @start_time DATETIME, @end_time DATETIME, @batch_start_time DATETIME, @batch_end_time DATETIME;
+
+		SET @batch_start_time = GETDATE()
 
         RAISERROR('================================================================', 0, 1) WITH NOWAIT;
         RAISERROR('Loading Bronze Layer', 0, 1) WITH NOWAIT;
@@ -116,6 +118,10 @@ BEGIN
         RAISERROR('================================================================', 0, 1) WITH NOWAIT;
         RAISERROR('Finished Loading Bronze Layer', 0, 1) WITH NOWAIT;
         RAISERROR('================================================================', 0, 1) WITH NOWAIT;
+
+        SET @batch_end_time = GETDATE()
+        
+        PRINT '>> Load Duration: Entire bronze layer = ' + CAST(DATEDIFF(SECOND, @batch_start_time, @batch_end_time) AS NVARCHAR) + ' seconds';
 
     END TRY
 
