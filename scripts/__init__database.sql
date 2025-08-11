@@ -4,45 +4,35 @@ Create DB and Schemas
 ============================================
 PURPOSE : 
     This script creates a new database called DataWarehouse after checking if it already exists.
-    If it already exists, it is dropped and recreased. Sets up schemas for medallion architecture.
+    If it already exists, it is dropped and recreated. Sets up schemas for medallion architecture.
 
 WARNING:
-    Executing this script will drop the entire 'DataWarehouse' databasem, as well as the medallion
+    Executing this script will drop the entire 'DataWarehouse' database, as well as the medallion
     schemas if they already exist. Ensure there are proper backups before running this script.
 -- 
 */
 
+-- Note: In PostgreSQL, you cannot drop/create a database within a transaction.
+-- These commands need to be run separately or from psql.
 
--- Ensure we are working with the 'master' database
-USE master;
-GO
+-- Drop and recreate the 'DataWarehouse' database
+-- Note: Need to disconnect all users first
+SELECT pg_terminate_backend(pid) 
+FROM pg_stat_activity 
+WHERE datname = 'DataWarehouse' 
+  AND pid <> pg_backend_pid();
 
--- Drop and recreate the 'DataWarehouse' database --
-IF EXISTS (SELECT 1 FROM sys.databases WHERE name = 'DataWarehouse')
-BEGIN
-    ALTER DATABASE DataWarehouse SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE DataWarehouse;
-END;
-GO
+DROP DATABASE IF EXISTS "DataWarehouse";
 
--- Create the 'DataWarehouse' database
-CREATE DATABASE DataWarehouse;
-GO
+CREATE DATABASE "DataWarehouse";
 
--- Switch to the newly created DataWarehouse database
-USE DataWarehouse;
-GO
-
--- Ensure QUOTED_IDENTIFIER is ON for creating schemas with proper handling
-SET QUOTED_IDENTIFIER ON;
-GO
+-- Connect to the new database
+\c DataWarehouse
 
 -- Create Schemas
-CREATE SCHEMA bronze;
-GO
+CREATE SCHEMA IF NOT EXISTS bronze;
+CREATE SCHEMA IF NOT EXISTS silver;
+CREATE SCHEMA IF NOT EXISTS gold;
 
-CREATE SCHEMA silver;
-GO
-
-CREATE SCHEMA gold;
-GO
+-- Set search path (optional, but helpful)
+SET search_path TO bronze, silver, gold, public;
