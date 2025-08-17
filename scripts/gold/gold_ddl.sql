@@ -3,32 +3,20 @@
 -- ===============================================================
 
 -- Ensure the gold schema exists
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'gold')
-BEGIN
-    EXEC('CREATE SCHEMA gold');
-END;
-GO
+CREATE SCHEMA IF NOT EXISTS gold;
 
 /* ===============================================================
    Drop Views if They Already Exist
 =============================================================== */
-IF OBJECT_ID('gold.fact_sales', 'V') IS NOT NULL
-    DROP VIEW gold.fact_sales;
-GO
-
-IF OBJECT_ID('gold.dim_products', 'V') IS NOT NULL
-    DROP VIEW gold.dim_products;
-GO
-
-IF OBJECT_ID('gold.dim_customers', 'V') IS NOT NULL
-    DROP VIEW gold.dim_customers;
-GO
+DROP VIEW IF EXISTS gold.fact_sales;
+DROP VIEW IF EXISTS gold.dim_products;
+DROP VIEW IF EXISTS gold.dim_customers;
 
 /* ===============================================================
    View: gold.dim_customers
    Purpose: Dimension table for customer information with surrogate key
 =============================================================== */
-CREATE VIEW gold.dim_customers AS
+CREATE OR REPLACE VIEW gold.dim_customers AS
 SELECT
     ROW_NUMBER() OVER (ORDER BY ci.cst_id) AS customer_key, -- Surrogate key
     ci.cst_id AS customer_id,
@@ -48,13 +36,12 @@ LEFT JOIN silver.erp_cust_az12 AS ca
     ON ci.cst_key = ca.cid
 LEFT JOIN silver.erp_loc_a101 AS la
     ON ci.cst_key = la.cid;
-GO
 
 /* ===============================================================
    View: gold.dim_products
    Purpose: Dimension table for product details with category mapping
 =============================================================== */
-CREATE VIEW gold.dim_products AS
+CREATE OR REPLACE VIEW gold.dim_products AS
 SELECT
     ROW_NUMBER() OVER (ORDER BY pn.prd_start_dt, pn.prd_key) AS product_key, -- Surrogate key
     pn.prd_id AS product_id,
@@ -71,13 +58,12 @@ FROM silver.crm_prd_info AS pn
 LEFT JOIN silver.erp_px_cat_g1v2 AS pc
     ON pn.category_id = pc.id
 WHERE pn.prd_end_dt IS NULL; -- Filter out historical products
-GO
 
 /* ===============================================================
    View: gold.fact_sales
    Purpose: Fact table for sales transactions with product & customer mapping
 =============================================================== */
-CREATE VIEW gold.fact_sales AS
+CREATE OR REPLACE VIEW gold.fact_sales AS
 SELECT
     sd.sls_ord_num AS order_number,
     pr.product_key,
@@ -93,4 +79,3 @@ LEFT JOIN gold.dim_products AS pr
     ON sd.sls_prd_key = pr.product_number
 LEFT JOIN gold.dim_customers AS cu
     ON sd.sls_cust_id = cu.customer_id;
-GO

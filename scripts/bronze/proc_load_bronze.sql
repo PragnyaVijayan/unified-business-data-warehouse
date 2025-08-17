@@ -1,138 +1,141 @@
-CREATE OR ALTER PROCEDURE bronze.load_bronze AS
+CREATE OR REPLACE FUNCTION bronze.load_bronze()
+RETURNS void AS $$
+DECLARE
+    start_time TIMESTAMP;
+    end_time TIMESTAMP;
+    batch_start_time TIMESTAMP;
+    batch_end_time TIMESTAMP;
 BEGIN
-    BEGIN TRY
-        SET NOCOUNT OFF;
+    batch_start_time := CURRENT_TIMESTAMP;
 
-        DECLARE @start_time DATETIME, @end_time DATETIME, @batch_start_time DATETIME, @batch_end_time DATETIME;
+    RAISE NOTICE '================================================================';
+    RAISE NOTICE 'Loading Bronze Layer';
+    RAISE NOTICE '================================================================';
 
-		SET @batch_start_time = GETDATE()
+    RAISE NOTICE '----------------------------------------------------------------';
+    RAISE NOTICE 'Loading CRM Tables';
+    RAISE NOTICE '----------------------------------------------------------------';
 
-        RAISERROR('================================================================', 0, 1) WITH NOWAIT;
-        RAISERROR('Loading Bronze Layer', 0, 1) WITH NOWAIT;
-        RAISERROR('================================================================', 0, 1) WITH NOWAIT;
+    -- CRM Customer Info
+    start_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Truncating Table: bronze.crm_cust_info';
+    TRUNCATE TABLE bronze.crm_cust_info;
 
-        RAISERROR('----------------------------------------------------------------', 0, 1) WITH NOWAIT;
-        RAISERROR('Loading CRM Tables', 0, 1) WITH NOWAIT;
-        RAISERROR('----------------------------------------------------------------', 0, 1) WITH NOWAIT;
+    RAISE NOTICE '>> Inserting Data Into: bronze.crm_cust_info';
+    COPY bronze.crm_cust_info
+    FROM '/data/source_crm/cust_info.csv'
+    WITH (
+        FORMAT csv,
+        HEADER true,
+        DELIMITER ','
+    );
+    end_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Load Duration: bronze.crm_cust_info = % seconds', 
+        EXTRACT(EPOCH FROM (end_time - start_time))::INTEGER;
 
-        -- CRM Customer Info
-        SET @start_time = GETDATE();
-        RAISERROR('>> Truncating Table: bronze.crm_cust_info', 0, 1) WITH NOWAIT;
-        TRUNCATE TABLE bronze.crm_cust_info;
+    -- CRM Product Info
+    start_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Truncating Table: bronze.crm_prd_info';
+    TRUNCATE TABLE bronze.crm_prd_info;
 
-        RAISERROR('>> Inserting Data Into: bronze.crm_cust_info', 0, 1) WITH NOWAIT;
-        BULK INSERT bronze.crm_cust_info
-        FROM '/data/source_crm/cust_info.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: bronze.crm_cust_info = ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+    RAISE NOTICE '>> Inserting Data Into: bronze.crm_prd_info';
+    COPY bronze.crm_prd_info
+    FROM '/data/source_crm/prd_info.csv'
+    WITH (
+        FORMAT csv,
+        HEADER true,
+        DELIMITER ','
+    );
+    end_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Load Duration: bronze.crm_prd_info = % seconds', 
+        EXTRACT(EPOCH FROM (end_time - start_time))::INTEGER;
 
-        -- CRM Product Info
-        SET @start_time = GETDATE();
-        RAISERROR('>> Truncating Table: bronze.crm_prd_info', 0, 1) WITH NOWAIT;
-        TRUNCATE TABLE bronze.crm_prd_info;
+    -- CRM Sales Details
+    start_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Truncating Table: bronze.crm_sales_details';
+    TRUNCATE TABLE bronze.crm_sales_details;
 
-        RAISERROR('>> Inserting Data Into: bronze.crm_prd_info', 0, 1) WITH NOWAIT;
-        BULK INSERT bronze.crm_prd_info
-        FROM '/data/source_crm/prd_info.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: bronze.crm_prd_info = ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+    RAISE NOTICE '>> Inserting Data Into: bronze.crm_sales_details';
+    COPY bronze.crm_sales_details
+    FROM '/data/source_crm/sales_details.csv'
+    WITH (
+        FORMAT csv,
+        HEADER true,
+        DELIMITER ','
+    );
+    end_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Load Duration: bronze.crm_sales_details = % seconds', 
+        EXTRACT(EPOCH FROM (end_time - start_time))::INTEGER;
 
-        -- CRM Sales Details
-        SET @start_time = GETDATE();
-        RAISERROR('>> Truncating Table: bronze.crm_sales_details', 0, 1) WITH NOWAIT;
-        TRUNCATE TABLE bronze.crm_sales_details;
+    RAISE NOTICE '----------------------------------------------------------------';
+    RAISE NOTICE 'Loading ERP Tables';
+    RAISE NOTICE '----------------------------------------------------------------';
 
-        RAISERROR('>> Inserting Data Into: bronze.crm_sales_details', 0, 1) WITH NOWAIT;
-        BULK INSERT bronze.crm_sales_details
-        FROM '/data/source_crm/sales_details.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: bronze.crm_sales_details = ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+    -- ERP LOC A101
+    start_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Truncating Table: bronze.erp_loc_a101';
+    TRUNCATE TABLE bronze.erp_loc_a101;
 
-        RAISERROR('----------------------------------------------------------------', 0, 1) WITH NOWAIT;
-        RAISERROR('Loading ERP Tables', 0, 1) WITH NOWAIT;
-        RAISERROR('----------------------------------------------------------------', 0, 1) WITH NOWAIT;
+    RAISE NOTICE '>> Inserting Data Into: bronze.erp_loc_a101';
+    COPY bronze.erp_loc_a101
+    FROM '/data/source_erp/LOC_A101.csv'
+    WITH (
+        FORMAT csv,
+        HEADER true,
+        DELIMITER ','
+    );
+    end_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Load Duration: bronze.erp_loc_a101 = % seconds', 
+        EXTRACT(EPOCH FROM (end_time - start_time))::INTEGER;
 
-        -- ERP LOC A101
-        SET @start_time = GETDATE();
-        RAISERROR('>> Truncating Table: bronze.erp_loc_a101', 0, 1) WITH NOWAIT;
-        TRUNCATE TABLE bronze.erp_loc_a101;
+    -- ERP Customer AZ12
+    start_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Truncating Table: bronze.erp_cust_az12';
+    TRUNCATE TABLE bronze.erp_cust_az12;
 
-        RAISERROR('>> Inserting Data Into: bronze.erp_loc_a101', 0, 1) WITH NOWAIT;
-        BULK INSERT bronze.erp_loc_a101
-        FROM '/data/source_erp/LOC_A101.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: bronze.erp_loc_a101 = ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+    RAISE NOTICE '>> Inserting Data Into: bronze.erp_cust_az12';
+    COPY bronze.erp_cust_az12
+    FROM '/data/source_erp/CUST_AZ12.csv'
+    WITH (
+        FORMAT csv,
+        HEADER true,
+        DELIMITER ','
+    );
+    end_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Load Duration: bronze.erp_cust_az12 = % seconds', 
+        EXTRACT(EPOCH FROM (end_time - start_time))::INTEGER;
 
-        -- ERP Customer AZ12
-        SET @start_time = GETDATE();
-        RAISERROR('>> Truncating Table: bronze.erp_cust_az12', 0, 1) WITH NOWAIT;
-        TRUNCATE TABLE bronze.erp_cust_az12;
+    -- ERP PX_CAT_G1V2
+    start_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Truncating Table: bronze.erp_px_cat_g1v2';
+    TRUNCATE TABLE bronze.erp_px_cat_g1v2;
 
-        RAISERROR('>> Inserting Data Into: bronze.erp_cust_az12', 0, 1) WITH NOWAIT;
-        BULK INSERT bronze.erp_cust_az12
-        FROM '/data/source_erp/CUST_AZ12.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: bronze.erp_cust_az12 = ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+    RAISE NOTICE '>> Inserting Data Into: bronze.erp_px_cat_g1v2';
+    COPY bronze.erp_px_cat_g1v2
+    FROM '/data/source_erp/PX_CAT_G1V2.csv'
+    WITH (
+        FORMAT csv,
+        HEADER true,
+        DELIMITER ','
+    );
+    end_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Load Duration: bronze.erp_px_cat_g1v2 = % seconds', 
+        EXTRACT(EPOCH FROM (end_time - start_time))::INTEGER;
 
-        -- ERP PX_CAT_G1V2
-        SET @start_time = GETDATE();
-        RAISERROR('>> Truncating Table: bronze.erp_px_cat_g1v2', 0, 1) WITH NOWAIT;
-        TRUNCATE TABLE bronze.erp_px_cat_g1v2;
+    RAISE NOTICE '================================================================';
+    RAISE NOTICE 'Finished Loading Bronze Layer';
+    RAISE NOTICE '================================================================';
 
-        RAISERROR('>> Inserting Data Into: bronze.erp_px_cat_g1v2', 0, 1) WITH NOWAIT;
-        BULK INSERT bronze.erp_px_cat_g1v2
-        FROM '/data/source_erp/PX_CAT_G1V2.csv'
-        WITH (
-            FIRSTROW = 2,
-            FIELDTERMINATOR = ',',
-            TABLOCK
-        );
-        SET @end_time = GETDATE();
-        PRINT '>> Load Duration: bronze.erp_px_cat_g1v2 = ' + CAST(DATEDIFF(SECOND, @start_time, @end_time) AS NVARCHAR) + ' seconds';
+    batch_end_time := CURRENT_TIMESTAMP;
+    RAISE NOTICE '>> Load Duration: Entire bronze layer = % seconds', 
+        EXTRACT(EPOCH FROM (batch_end_time - batch_start_time))::INTEGER;
 
-        RAISERROR('================================================================', 0, 1) WITH NOWAIT;
-        RAISERROR('Finished Loading Bronze Layer', 0, 1) WITH NOWAIT;
-        RAISERROR('================================================================', 0, 1) WITH NOWAIT;
-
-        SET @batch_end_time = GETDATE()
-        
-        PRINT '>> Load Duration: Entire bronze layer = ' + CAST(DATEDIFF(SECOND, @batch_start_time, @batch_end_time) AS NVARCHAR) + ' seconds';
-
-    END TRY
-
-    BEGIN CATCH
-        RAISERROR('================================================================', 0, 1) WITH NOWAIT;
-        RAISERROR('ERROR OCCURRED DURING LOADING BRONZE LAYER', 0, 1) WITH NOWAIT;
-        --RAISERROR('Error Message: %s', 0, 1, ERROR_MESSAGE()) WITH NOWAIT;
-        --RAISERROR('Error Number: %d', 0, 1, ERROR_NUMBER()) WITH NOWAIT;
-        --RAISERROR('Error State: %d', 0, 1, ERROR_STATE()) WITH NOWAIT;
-        --RAISERROR('Error Severity: %d', 0, 1, ERROR_SEVERITY()) WITH NOWAIT;
-        --RAISERROR('Error Line: %d', 0, 1, ERROR_LINE()) WITH NOWAIT;
-        RAISERROR('================================================================', 0, 1) WITH NOWAIT;
-    END CATCH;
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE '================================================================';
+    RAISE NOTICE 'ERROR OCCURRED DURING LOADING BRONZE LAYER';
+    RAISE NOTICE 'Error Message: %', SQLERRM;
+    RAISE NOTICE 'Error Context: %', SQLSTATE;
+    RAISE NOTICE '================================================================';
+    RAISE;
 END;
+$$ LANGUAGE plpgsql;
